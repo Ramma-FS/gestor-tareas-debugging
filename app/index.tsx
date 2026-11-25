@@ -2,12 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
-  ActivityIndicator, FlatList, Keyboard, Pressable, ScrollView,
+  ActivityIndicator, FlatList, Keyboard, Pressable,
   StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { TaskCard } from '../src/components/TaskCard';
 import { StatusTabs } from '../src/components/StatusTabs';
-import { fetchTasks } from '../src/services/taskService';
+import { fetchTasks, createTask, updateTask, removeTask } from '../src/services/taskService';
 import type { Task, TaskStatus } from '../src/types/task';
 import { filterTasks } from '../src/utils/taskFilters';
 import { isValidTaskTitle } from '../src/utils/taskValidation';
@@ -20,10 +20,11 @@ export default function TaskManagerScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
-  const nextId = useRef(100);
-
+  const busy = useRef(false);
 
   async function loadTasks(simulateFailure = false) {
+    if (busy.current) return;
+    busy.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -34,9 +35,9 @@ export default function TaskManagerScreen() {
       setError('No pudimos cargar las tareas. Probá otra vez.');
     } finally {
       setLoading(false);
+      busy.current = false;
     }
   }
-
 
   useEffect(() => {
     void loadTasks();
@@ -46,39 +47,47 @@ export default function TaskManagerScreen() {
   const total = tasks.length;
   const completed = tasks.filter((task) => task.completed).length;
 
-
-  function toggleTask(id: string) {
-    setTasks((previous) =>
-      previous.map((task) =>
-        task.id === id
-          ? { ...task, completed: !task.completed }
-          : task
-      )
-    );
+  async function mutate(action: () => Promise<void>) {
+    if (busy.current) return;
+    busy.current = true;
+    setError(null);
+    setFeedback('');
+    try { await action(); }
+    catch (caught) {
+      console.error('[taskService] Error de escritura', caught);
+      setError('No se pudo guardar el cambio. Recargá los datos y probá otra vez.');
+    } finally { busy.current = false; }
   }
 
+  function toggleTask(id: string) {
+    const found = tasks.find((task) => task.id === id);
+    if (!found) return;
+    void mutate(async () => {
+      const updated = await updateTask({ ...found, completed: !found.completed });
+      setTasks((previous) => previous.map((task) => task.id === id ? updated : task));
+    });
+  }
 
   function addTask() {
     if (!isValidTaskTitle(newTitle)) {
       setFeedback('Ingresá un nombre válido para continuar.');
       return;
     }
-    const task: Task = {
-      id: `nuevo-${nextId.current++}`,
-      title: newTitle,
-      description: 'Tarea creada durante el taller de debugging.',
-      priority: 'media',
-      completed: false,
-    };
-    setTasks((previous) => [task, ...previous]);
-    setNewTitle('');
-    setFeedback('Tarea agregada.');
-    Keyboard.dismiss();
+    void mutate(async () => {
+      const task = await createTask(newTitle.trim());
+      setTasks((previous) => [task, ...previous]);
+      setNewTitle('');
+      setFeedback('Tarea agregada.');
+      Keyboard.dismiss();
+    });
   }
 
   function deleteTask(id: string) {
-    setTasks((previous) => previous.filter((task) => task.id !== id));
-    setFeedback('Tarea eliminada.');
+    void mutate(async () => {
+      await removeTask(id);
+      setTasks((previous) => previous.filter((task) => task.id !== id));
+      setFeedback('Tarea eliminada.');
+    });
   }
 
   return (

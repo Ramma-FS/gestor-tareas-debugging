@@ -1,18 +1,31 @@
 import type { Task } from '../types/task';
 
-const INITIAL_TASKS: Task[] = [
-  { id: 't01', title: 'Validar login', description: 'Comprobar campos vacíos y credenciales incorrectas.', priority: 'alta', completed: false },
-  { id: 't02', title: 'Corregir navegación', description: 'Validar el regreso desde el detalle.', priority: 'media', completed: true },
-  { id: 't03', title: 'Probar API lenta', description: 'Simular una demora y verificar los indicadores de carga.', priority: 'alta', completed: false },
-  { id: 't04', title: 'Generar reporte', description: 'Documentar los fallos detectados y su corrección.', priority: 'baja', completed: false },
-  { id: 't05', title: 'Revisar validaciones', description: 'Asegurar el tratamiento de espacios y datos vacíos.', priority: 'media', completed: true },
-];
-
-// Servicio mock: 700 ms de latencia, no requiere conexión ni servidor backend.
+const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://api.montenegroariel.com.ar').replace(/\/$/, '');
+type ApiTask = { id: number; title: string; description?: string | null; completed?: boolean };
+function toTask(record: ApiTask): Task {
+  return { id: String(record.id), title: record.title, description: record.description ?? '', completed: record.completed ?? false, priority: 'media' };
+}
+async function request(path: string, options?: RequestInit): Promise<Response> {
+  const response = await fetch(`${API_URL}${path}`, options);
+  if (!response.ok) throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  return response;
+}
 export async function fetchTasks(simulateFailure = false): Promise<Task[]> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 700));
-  if (simulateFailure) {
-    throw new Error('HTTP 503: servidor temporalmente indisponible (simulado)');
+  if (simulateFailure) throw new Error('HTTP 503: servidor temporalmente indisponible (simulado)');
+  const records: Task[] = [];
+  const limit = 100;
+  for (let skip = 0; ; skip += limit) {
+    const page: ApiTask[] = await (await request(`/tasks/?skip=${skip}&limit=${limit}`)).json();
+    records.push(...page.map(toTask));
+    if (page.length < limit) return records;
   }
-  return INITIAL_TASKS.map((task) => ({ ...task }));
+}
+export async function createTask(title: string): Promise<Task> {
+  return toTask(await (await request('/tasks/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title, description: 'Tarea creada durante el taller de debugging.', completed: false }) })).json());
+}
+export async function updateTask(task: Task): Promise<Task> {
+  return toTask(await (await request(`/tasks/${encodeURIComponent(task.id)}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: task.title, description: task.description, completed: task.completed }) })).json());
+}
+export async function removeTask(id: string): Promise<void> {
+  await request(`/tasks/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
