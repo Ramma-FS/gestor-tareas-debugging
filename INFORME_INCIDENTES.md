@@ -2,7 +2,7 @@
 
 **Estudiante:** Ramiro Fleitas  
 **Fecha:** 25/11/2026  
-**Proyecto / rama Git:** gestor-tareas-debugging / pendiente de confirmar  
+**Proyecto / rama Git:** gestor-tareas-debugging / main
 **Entorno (Expo SDK, Android, dispositivo):** Expo SDK 57, React Native, TypeScript, Node.js 24.14.1, Windows 11, Visual Studio Code, CMD y navegador web. Prueba en Android pendiente. Se utilizó la versión web debido a la incompatibilidad entre el SDK del proyecto y Expo Go instalado en el iPhone.
 
 ## Resumen ejecutivo
@@ -108,8 +108,7 @@ Las referencias a capturas corresponden al documento adjunto `edi 1.docx`.
 
 ## Conclusión y control de cambios
 
-- **Commit final (hash):** Pendiente de realizar o confirmar.
-- **Mensaje del commit:** Propuesto: `fix: corregir incidencias del gestor de tareas y documentar pruebas`.
+**Commit de correcciones (hash):** b4f63a0
+**Mensaje del commit:** fix: correccion de seis incidencias, pruebas y documentacion tecnica
+**Repositorio:** https://github.com/Ramma-FS/gestor-tareas-debugging
 - **Qué aprendí y cómo lo aplicaría a mi app final:** Aprendí que no alcanza con que una aplicación se pueda ejecutar. También es necesario comprobar cómo responde ante distintos datos, cambios de estado y errores. Las pruebas automatizadas me permitieron identificar problemas y comprobar que las correcciones no afectaran las funcionalidades que ya estaban cubiertas. También entendí la importancia de no modificar directamente el estado de React, declarar las dependencias de los hooks y manejar correctamente las solicitudes asíncronas. En mi aplicación final aplicaría estos mismos criterios, documentando los errores y realizando pruebas antes de entregar una nueva versión.
-
-Como tareas pendientes, debo confirmar la rama y el commit final, registrar la prueba manual de las tarjetas y verificar el funcionamiento en Android. La validación web no sustituye la prueba en un dispositivo Android.
