@@ -1,6 +1,10 @@
 import type { Task } from '../types/task';
 
-const API_URL = (process.env.EXPO_PUBLIC_API_URL || 'https://api.montenegroariel.com.ar').replace(/\/$/, '');
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '');
+
+if (!API_URL) {
+  throw new Error('La URL de la API no está configurada');
+}
 type ApiTask = { id: number; title: string; description?: string | null; completed?: boolean };
 function toTask(record: ApiTask): Task {
   return { id: String(record.id), title: record.title, description: record.description ?? '', completed: record.completed ?? false, priority: 'media' };
